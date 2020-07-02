@@ -28,11 +28,11 @@ public class CSVReportServiceTest {
         Person john = new Person();
         List<String> rolesOfJohn = Arrays.asList("student","athlete");
         john.setRoles(rolesOfJohn.stream().collect(Collectors.toSet()));
-        //  john.setRoles(Set.of("student", "gamer", "athlete"));
+        // john.setRoles(Set.of("student", "gamer", "athlete"));
         john.setEmailAddress("john@test.com");
 
         Person jane = new Person();
-        List<String> rolesOfJane = Arrays.asList("employee", "athlete");
+        List<String> rolesOfJane = Arrays.asList("gamer", "athlete");
         jane.setRoles(rolesOfJane.stream().collect(Collectors.toSet()));
         //   jane.setRoles(Set.of("employee", "athlete"));
         jane.setEmailAddress("jane@test.com");
@@ -57,25 +57,26 @@ public class CSVReportServiceTest {
         List<Transaction> mockedTransactions = new ArrayList<>();
 
         mockedTransactions.add(createTransaction(10, "john@test.com", LocalDateTime.now().minusDays(5)));
-        mockedTransactions.add(createTransaction(10, "bob@test.com",  LocalDateTime.now().minusDays(35)));
+        mockedTransactions.add(createTransaction(30, "jane@test.com",  LocalDateTime.now().minusDays(35)));
         mockedTransactions.add(createTransaction(20, "jane@test.com",  LocalDateTime.now().minusDays(10)));
+        mockedTransactions.add(createTransaction(20, "bob@test.com",  LocalDateTime.now().minusDays(20)));
         Mockito.stub(transactionRepository.getTransactions())
                 .toReturn(
                         mockedTransactions
                 );
 
+         String result = csvReportService.getAverageConsumptionPerRoleDuringTheLastMonth();
 
-        //  String test = csvReportService.getAverageConsumptionPerRoleDuringTheLastMonth();
-
-
-
-        // List<String> roles = csvReportService.getAverageConsumptionPerRoleDuringTheLastMonth();
-        //  List<String> roles = transactionService.getPersonRolesOfAllTransactions();
-
-        //    assertEquals(3, roles.size());
-        //assertTrue(roles.containsAll(List.of("student", "gamer", "athlete", "employee")));
-        //   assertTrue(roles.containsAll(Arrays.asList("student", "athlete", "employee")));
-
+        Map<String, Double> consumptionPerRole = new HashMap<>();
+        List<String> csvRoles = Arrays.asList(result.split("\n")[0].split(","));
+        List<String> csvValues = Arrays.asList(result.split("\n")[1].split(","));
+        for(int i = 0;i < csvRoles.size(); i++){
+            consumptionPerRole.put(csvRoles.get(i), Double.parseDouble(csvValues.get(i)));
+        }
+        assertEquals(3, csvRoles.size());
+        assertTrue(consumptionPerRole.get("student") == 10.0);  //An illegal reflective access operation has occurred. Hat to do with Optional. Need to correct test
+        assertTrue(consumptionPerRole.get("gamer") == 20.0);
+        assertTrue(consumptionPerRole.get("athlete") == 15.0);
     }
 
     private Transaction createTransaction(int amount, String emailAddress, LocalDateTime date) {

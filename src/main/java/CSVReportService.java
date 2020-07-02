@@ -34,6 +34,7 @@ public class CSVReportService {
 
         String header = " ";
         String body = " " ;
+        String csv = "";
 
         List<Transaction> transactions = transactionRepository.getTransactions();
 
@@ -47,8 +48,40 @@ public class CSVReportService {
                 }).filter(m -> m.entrySet().isEmpty())
                 .collect(Collectors.toList());
 
+        List<String> roles = transactions.stream()
+                .filter(this::isInLastMonth)
+                .map(t -> personsService.getPersonByEmailAddress(t.getEmailAddress()))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .map(Person::getRoles)
+                .flatMap(r -> r.stream())
+                .distinct()
+                .collect(Collectors.toList());
 
-        return header + "\n" + body;
+
+        Map<String, OptionalDouble> rolesAVG = roles.stream()
+                .map(role -> new AbstractMap.SimpleEntry<String, OptionalDouble>
+                        (role, transactions.stream()
+                                .filter(this::isInLastMonth)
+                                .filter(
+                                        tr -> this.personsService.getPersonByEmailAddress(tr.getEmailAddress()).get().getRoles().contains(role) //Not a pretty solution. Have to get Double instead of Optional Double
+                                ).mapToDouble(Transaction::getAmount).average()
+                        ))
+                .collect(Collectors.toMap(entry-> entry.getKey(), entry->entry.getValue()));
+
+
+
+        for (String r : rolesAVG.keySet()) {
+            header += r + ",";
+        }
+        csv += header + "\n";
+
+        for (OptionalDouble v : rolesAVG.values()) {
+            csv += v.getAsDouble() + ",";
+        }
+
+        return csv;
+
 
     }
 
